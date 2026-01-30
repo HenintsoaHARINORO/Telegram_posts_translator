@@ -1,0 +1,557 @@
+{
+  "name": "Multiple posts translation",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Configure your Telegram channels here\n// Add as many channels as you need!\n\nconst channels = [\n  {\n    sourceChannel: \"sourceChannel\",\n    targetChannel: \"@targetChannel\",\n    targetLanguage: \"English\",\n    channelSignature: \"test\"\n  },\n  {\n    sourceChannel: \"sourceChannel\",\n    targetChannel: \"@targetChannel\",\n    targetLanguage: \"English\",\n    channelSignature: \"signature2\"\n  },\n  {\n    sourceChannel: \"sourceChannel\",\n    targetChannel: \"@targetChannel\",\n    targetLanguage: \"English\",\n    channelSignature: \"signature2\"\n  },\n  {\n    sourceChannel: \"sourceChannel\",\n    targetChannel: \"@targetChannel\",\n    targetLanguage: \"English\",\n    channelSignature: \"signature2\"\n  },\n   {\n    sourceChannel: \"sourceChannel\",\n    targetChannel: \"@targetChannel\",\n    targetLanguage: \"English\",\n    channelSignature: \"signature2\"\n  },\n  {\n    sourceChannel: \"sourceChannel\",\n    targetChannel: \"@targetChannel\",\n    targetLanguage: \"English\",\n    channelSignature: \"signature2\"\n  },\n  {\n    sourceChannel: \"sourceChannel\",\n    targetChannel: \"@targetChannel\",\n    targetLanguage: \"English\",\n    channelSignature: \"signature2\"\n  },\n];\n\n// Return each channel as a separate item\n// n8n will automatically process each one\nreturn channels.map(channel => ({\n  json: channel\n}));"
+      },
+      "id": "40a4a833-ec95-4aac-8e16-d1ad05bb61d3",
+      "name": "Create Channel List",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        440,
+        1660
+      ],
+      "notesInFlow": true,
+      "typeVersion": 2,
+      "notes": "⭐ EDIT THIS NODE to add/remove channels"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 16
+            }
+          ]
+        }
+      },
+      "id": "465d429a-049c-4a45-b5b1-a33327f0666b",
+      "name": "Daily Schedule1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        220,
+        1660
+      ],
+      "typeVersion": 1.2,
+      "notes": "Triggers the workflow daily at 4 PM. Adjust the time according to your needs."
+    },
+    {
+      "parameters": {
+        "url": "=https://t.me/s/{{ $json.sourceChannel }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/0.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "459b099b-5c99-4ce5-bad4-a78557c4b291",
+      "name": "Fetch Channel Page1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        660,
+        1660
+      ],
+      "notesInFlow": true,
+      "typeVersion": 4.2,
+      "notes": "Fetches the HTML content of each source Telegram channel"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "post",
+              "cssSelector": "div.tgme_widget_message_wrap:last-of-type div.js-message_text"
+            },
+            {
+              "key": "postId",
+              "cssSelector": "div.tgme_widget_message_wrap:last-of-type div.tgme_widget_message_info span.tgme_widget_message_meta"
+            },
+            {
+              "key": "video",
+              "cssSelector": "div.tgme_widget_message_wrap:last-of-type div.tgme_widget_message_bubble a div.tgme_widget_message_video_wrap > video",
+              "returnValue": "attribute",
+              "attribute": "src"
+            },
+            {
+              "key": "photo",
+              "cssSelector": "div.tgme_widget_message_wrap:last-of-type div.tgme_widget_message_bubble div.media_supported_cont > a.tgme_widget_message_photo_wrap",
+              "returnValue": "attribute",
+              "attribute": "style"
+            }
+          ]
+        },
+        "options": {
+          "trimValues": false,
+          "cleanUpText": false
+        }
+      },
+      "id": "fbaaec67-876a-4ae0-82f0-849c2592606f",
+      "name": "Extract Post Content1",
+      "type": "n8n-nodes-base.html",
+      "position": [
+        880,
+        1660
+      ],
+      "typeVersion": 1.2,
+      "notes": "Extracts text, images, and videos from the latest Telegram post"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fixed code for \"Clean Post Content\" node\n// This processes ALL items, not just the first one\n\nconst items = $input.all();\n\nfor (let item of items) {\n  if (item.json.post && item.json.channelSignature) {\n    // Clean up the post content by removing original channel signature\n    let cleanPost = item.json.post\n      .replaceAll(item.json.channelSignature, '')\n      .trim();\n    \n    item.json.post = cleanPost;\n  }\n}\n\nreturn items;"
+      },
+      "id": "da685beb-20aa-48e0-8dfc-cb7ddede5768",
+      "name": "Clean Post Content1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1280,
+        1660
+      ],
+      "notesInFlow": true,
+      "typeVersion": 2,
+      "notes": "Removes original channel signature and cleans up the text"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import re\n\nprint(\"=== INPUT STRUCTURE ===\")\nitems = _input.all()\nprint(f\"Number of items: {len(items)}\")\n\nfor idx, item in enumerate(items):\n    print(f\"\\n=== Item {idx} ===\")\n    \n    if 'json' in item:\n        json_keys = list(item['json'].keys())\n        print(f\"JSON keys: {json_keys}\")\n        \n        # Print all values to see what we have\n        for key in json_keys:\n            value = item['json'][key]\n            if value is None:\n                print(f\"{key}: None\")\n            elif isinstance(value, str) and len(value) > 100:\n                print(f\"{key}: {value[:100]}...\")\n            else:\n                print(f\"{key}: {value}\")\n        \n        # Now process photo if it exists\n        if 'photo' in item['json']:\n            photo_value = item['json']['photo']\n            print(f\"\\n>>> Processing photo field\")\n            print(f\"Photo value type: {type(photo_value)}\")\n            \n            # Check if photo_value is not None and is a string\n            if photo_value and isinstance(photo_value, str):\n                # Try to extract URL\n                urlMatch = re.search(r\"background-image:url\\('([^']+)'\\)\", photo_value)\n                \n                if urlMatch:\n                    url = urlMatch.group(1)\n                    print(f\"✓ Extracted URL: {url[:100]}...\")\n                    item['json']['photo'] = url\n                else:\n                    print(\"✗ Regex didn't match, trying fallback...\")\n                    arr = photo_value.split(\"'\")\n                    if len(arr) >= 2:\n                        url = arr[-2]\n                        print(f\"✓ Extracted URL (fallback): {url[:100]}...\")\n                        item['json']['photo'] = url\n            else:\n                print(f\"⚠ Photo value is None or not a string, skipping\")\n\nprint(\"\\n=== RETURNING ITEMS ===\")\nreturn items"
+      },
+      "id": "ac6a1ed0-fcf9-4f0e-9469-8e09c8d87781",
+      "name": "Process Media URLs1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1080,
+        1660
+      ],
+      "notesInFlow": true,
+      "typeVersion": 2,
+      "notes": "Extracts clean URLs from CSS style attributes for images"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "202a35e0-040c-47d2-9aaa-2f7d295ac2dd",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $('Extract Post Content1').item.json.photo }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9c39db4b-61b5-467b-a3fe-1bc1a049e3a0",
+      "name": "Has Photo?1",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2800,
+        1460
+      ],
+      "typeVersion": 2.2,
+      "notes": "Checks if the post contains a photo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "95dcac89-39c4-4a0a-8c1c-e1c560be755f",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $('Extract Post Content1').item.json.video }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f145f09-5b9b-4718-917c-3b3f247e7fc5",
+      "name": "Has Video?1",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2580,
+        1800
+      ],
+      "typeVersion": 2.2,
+      "notes": "Checks if the post contains a video"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Clean Post Content1').item.json.photo }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "9abd042b-6257-47c4-b9e3-02e442b409b4",
+      "name": "Download Photo1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        3020,
+        1460
+      ],
+      "notesInFlow": true,
+      "typeVersion": 4.2,
+      "notes": "Downloads the photo from Telegram servers"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Clean Post Content1').item.json.video }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "a9af779a-1f99-4118-9019-ab3493f3d4f0",
+      "name": "Download Video1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        3020,
+        1860
+      ],
+      "notesInFlow": true,
+      "typeVersion": 4.2,
+      "notes": "Downloads the video from Telegram servers"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Create Channel List').item.json.targetChannel }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $json.text }}"
+        }
+      },
+      "id": "c7a070c8-19e1-47f9-b829-22452b8df68a",
+      "name": "Send Photo to Channel1",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        3240,
+        1460
+      ],
+      "webhookId": "d72b2e9d-c37c-4bbe-985b-8b1699bce9b3",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "etoOf3GjALYWligN",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Sends the translated post with photo to target channel"
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Create Channel List').item.json.targetChannel }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $json.text }}"
+        }
+      },
+      "id": "e499585d-e4d2-422b-935c-e0fcfd16ce2e",
+      "name": "Send Video to Channel1",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        3240,
+        1860
+      ],
+      "webhookId": "c532eafe-875d-4ac2-8d77-52f5dd84c3c5",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "etoOf3GjALYWligN",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Sends the translated post with video to target channel"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Create Channel List').item.json.targetChannel }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": "={{ false }}",
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "95c4e198-e649-4a9c-be1d-7a01cae5d652",
+      "name": "Send Text to Channel1",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        3240,
+        1660
+      ],
+      "webhookId": "c58b24f7-3799-4021-be07-fe74705ef7c3",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "etoOf3GjALYWligN",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Sends text-only translated posts to target channel"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Translate the following text to {{ $json.targetLanguage }} in a friendly, natural style.\n\nIf the translated text would exceed 900 characters, instead provide a bulleted summary of the key points in {{ $json.targetLanguage }}.\n\nReturn only the translated text or bulleted summary without any additional commentary, explanations, or formatting markers.\n\nText to translate: {{ $json.post }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1840,
+        1660
+      ],
+      "id": "5309e4a5-2676-431b-9fe0-f87328213f3b",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1720,
+        1880
+      ],
+      "id": "db801a90-986b-4b43-888c-0cf9af4ed155",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "zkE2VWJbR64acQe9",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a93060f1-5f3c-4146-9cf9-66dcfe54ba6d",
+              "leftValue": "={{ $json.post }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        1660
+      ],
+      "id": "89721e88-7153-4f92-90b4-2d0b5ffcde2b",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Create Channel List": {
+      "main": [
+        [
+          {
+            "node": "Fetch Channel Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule1": {
+      "main": [
+        [
+          {
+            "node": "Create Channel List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Channel Page1": {
+      "main": [
+        [
+          {
+            "node": "Extract Post Content1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post Content1": {
+      "main": [
+        [
+          {
+            "node": "Process Media URLs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Post Content1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Media URLs1": {
+      "main": [
+        [
+          {
+            "node": "Clean Post Content1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Photo?1": {
+      "main": [
+        [
+          {
+            "node": "Download Photo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Video?1": {
+      "main": [
+        [
+          {
+            "node": "Download Video1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Photo1": {
+      "main": [
+        [
+          {
+            "node": "Send Photo to Channel1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video1": {
+      "main": [
+        [
+          {
+            "node": "Send Video to Channel1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Has Photo?1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Has Video?1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Text to Channel1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d5e844c6-53d7-4f3d-adc7-75d49ee5086c",
+  "meta": {
+    "instanceId": "a80f5fa3143daaa8f8e7b1498f9a3f7ba2dd8b26d49dd1753d313fc11a7bf0f4"
+  },
+  "id": "oRSpScNTFMTWuRM7",
+  "tags": []
+}
